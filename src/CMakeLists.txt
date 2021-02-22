@@ -126,8 +126,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
         target_compile_options(librw
             PRIVATE
                 "-Wextra"
-                "-Wdouble-promotion"
-                "-Wpedantic"
+		"-Wno-unused-parameter"
         )
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

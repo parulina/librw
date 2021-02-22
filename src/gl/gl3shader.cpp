@@ -292,8 +292,7 @@ Shader::create(const char **vsrc, const char **fsrc)
 
 	// set uniform block binding
 	for(i = 0; i < uniformRegistry.numBlocks; i++){
-		int idx = glGetUniformBlockIndex(program,
-		                                 uniformRegistry.blockNames[i]);
+		int idx = glGetUniformBlockIndex(program, uniformRegistry.blockNames[i]);
 		if(idx >= 0)
 			glUniformBlockBinding(program, idx, i);
 	}

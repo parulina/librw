@@ -412,7 +412,7 @@ flipAlphaBlock5_half(uint8 *dst, uint8 *src)
 	dst[1] = src[1];
 	// bits
 	uint64 bits = *(uint64*)&src[2];
-	uint64 flipbits = bits & 0xFFFFFF000000;
+	uint64 flipbits = bits & 0xFFFFFF000000ULL;
 	flipbits |= (bits>>12) & 0xFFF;
 	flipbits |= (bits<<12) & 0xFFF000;
 	memcpy(dst+2, &flipbits, 6);

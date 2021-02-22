@@ -72,8 +72,8 @@ openIm2D(void)
 	glBufferData(GL_ARRAY_BUFFER, STARTVERTICES*sizeof(Im2DVertex), nil, GL_STREAM_DRAW);
 
 #ifdef RW_GL_USE_VAOS
-	glGenVertexArrays(1, &im2DVao);
-	glBindVertexArray(im2DVao);
+	glGenVertexArraysAPPLE(1, &im2DVao);
+	glBindVertexArrayAPPLE(im2DVao);
 	setAttribPointers(im2dattribDesc, 3);
 #endif
 }
@@ -129,7 +129,7 @@ void
 im2DRenderPrimitive(PrimitiveType primType, void *vertices, int32 numVertices)
 {
 #ifdef RW_GL_USE_VAOS
-	glBindVertexArray(im2DVao);
+	glBindVertexArrayAPPLE(im2DVao);
 #endif
 
 	glBindBuffer(GL_ARRAY_BUFFER, im2DVbo);
@@ -159,7 +159,7 @@ im2DRenderIndexedPrimitive(PrimitiveType primType,
 	void *indices, int32 numIndices)
 {
 #ifdef RW_GL_USE_VAOS
-	glBindVertexArray(im2DVao);
+	glBindVertexArrayAPPLE(im2DVao);
 #endif
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, im2DIbo);
@@ -226,8 +226,8 @@ openIm3D(void)
 	glBufferData(GL_ARRAY_BUFFER, STARTVERTICES*sizeof(Im3DVertex), nil, GL_STREAM_DRAW);
 
 #ifdef RW_GL_USE_VAOS
-	glGenVertexArrays(1, &im3DVao);
-	glBindVertexArray(im3DVao);
+	glGenVertexArraysAPPLE(1, &im3DVao);
+	glBindVertexArrayAPPLE(im3DVao);
 	setAttribPointers(im3dattribDesc, 3);
 #endif
 }
@@ -259,7 +259,7 @@ im3DTransform(void *vertices, int32 numVertices, Matrix *world, uint32 flags)
 		SetRenderStatePtr(TEXTURERASTER, nil);
 
 #ifdef RW_GL_USE_VAOS
-	glBindVertexArray(im2DVao);
+	glBindVertexArrayAPPLE(im2DVao);
 #endif
 
 	glBindBuffer(GL_ARRAY_BUFFER, im3DVbo);

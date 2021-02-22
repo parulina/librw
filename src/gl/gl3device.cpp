@@ -493,7 +493,7 @@ void
 bindFramebuffer(uint32 fbo)
 {
 	if(currentFramebuffer != fbo){
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glBindFramebufferEXT(GL_FRAMEBUFFER, fbo);
 		currentFramebuffer = fbo;
 	}
 }
@@ -915,7 +915,7 @@ resetRenderState(void)
 	uniformState.fogStart = 0.0f;
 	uniformState.fogEnd = 0.0f;
 	uniformState.fogRange = 0.0f;
-	uniformState.fogColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+	uniformState.fogColor = makeRGBAf( 1.0f, 1.0f, 1.0f, 1.0f );
 	rwStateCache.gsalpha = 0;
 	rwStateCache.gsalpharef = 128;
 	stateDirty = 1;
@@ -1203,7 +1203,7 @@ setFrameBuffer(Camera *cam)
 				Gl3Raster *oldfb = PLUGINOFFSET(Gl3Raster, natzb->fboMate, nativeRasterOffset);
 				if(oldfb->fbo){
 					bindFramebuffer(oldfb->fbo);
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+					glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 					bindFramebuffer(natfb->fbo);
 				}
 				oldfb->fboMate = nil;
@@ -1212,15 +1212,15 @@ setFrameBuffer(Camera *cam)
 			natzb->fboMate = fbuf;
 			if(natfb->fbo){
 				if(gl3Caps.gles)
-					glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, natzb->texid);
+					glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, natzb->texid);
 				else
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, natzb->texid, 0);
+					glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, natzb->texid, 0);
 			}
 		}
 	}else{
 		// remove z-buffer
 		if(natfb->fboMate && natfb->fbo)
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+			glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 		natfb->fboMate = nil;
 	}
 }
@@ -1516,6 +1516,7 @@ static struct {
 	int gl;
 	int major, minor;
 } profiles[] = {
+	{ SDL_GL_CONTEXT_PROFILE_CORE, 2, 0 },
 	{ SDL_GL_CONTEXT_PROFILE_CORE, 3, 3 },
 	{ SDL_GL_CONTEXT_PROFILE_CORE, 2, 1 },
 	{ SDL_GL_CONTEXT_PROFILE_ES, 3, 1 },
@@ -1534,14 +1535,15 @@ startSDL2(void)
 
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glGlobals.numSamples);
 
-	int i;
-	for(i = 0; profiles[i].gl; i++){
+	/*
+	int i = 0; // Start with 2.0
+	for(i; profiles[i].gl; i++){
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profiles[i].gl);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, profiles[i].major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, profiles[i].minor);
 
 		if(mode->flags & VIDEOMODEEXCLUSIVE) {
-			win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, mode->mode.w, mode->mode.h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
+			win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, mode->mode.w, mode->mode.h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 			if (win)
 				SDL_SetWindowDisplayMode(win, &mode->mode);
 		} else {
@@ -1559,14 +1561,31 @@ startSDL2(void)
 		RWERROR((ERR_GENERAL, SDL_GetError()));
 		return 0;
 	}
-	ctx = SDL_GL_CreateContext(win);
-
 	if (!((gl3Caps.gles ? gladLoadGLES2Loader : gladLoadGLLoader) ((GLADloadproc) SDL_GL_GetProcAddress, gl3Caps.glversion)) ) {
 		RWERROR((ERR_GENERAL, "gladLoadGLLoader failed"));
 		SDL_GL_DeleteContext(ctx);
 		SDL_DestroyWindow(win);
 		return 0;
 	}
+	*/
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+	win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+			glGlobals.winWidth, glGlobals.winHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+
+	if (win) {
+		SDL_SetWindowDisplayMode(win, NULL);
+	} else {
+		RWERROR((ERR_GENERAL, SDL_GetError()));
+		return 0;
+	}
+
+	ctx = SDL_GL_CreateContext(win);
+
+	gladLoadGLLoader(SDL_GL_GetProcAddress);
+
 
 	printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 
@@ -1830,8 +1849,8 @@ initOpenGL(void)
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
 
 	if(gl3Caps.glversion >= 30){
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
+		glGenVertexArraysAPPLE(1, &vao);
+		glBindVertexArrayAPPLE(vao);
 	}
 
 #ifdef RW_GL_USE_UBOS
@@ -1927,7 +1946,20 @@ deviceSystemSDL2(DeviceReq req, void *arg, int32 n)
 	case DEVICEFINALIZE:
 		return finalizeOpenGL();
 
-	// TODO: implement subsystems
+	case DEVICEGETNUMSUBSYSTEMS:
+		return SDL_GetNumVideoDisplays();
+
+	case DEVICEGETCURRENTSUBSYSTEM:
+		return 0;
+
+	case DEVICESETSUBSYSTEM:
+		return 1;
+
+	case DEVICEGETSUBSSYSTEMINFO:
+		if(n >= SDL_GetNumVideoDisplays())
+			return 0;
+		strncpy(((SubSystemInfo*)arg)->name, SDL_GetDisplayName(n), 80);
+		return 1;
 
 	case DEVICEGETNUMVIDEOMODES:
 		return glGlobals.numModes;
@@ -1965,7 +1997,7 @@ deviceSystemSDL2(DeviceReq req, void *arg, int32 n)
 		glGlobals.numSamples = (uint32)n;
 		return 1;
 	default:
-		assert(0 && "not implemented");
+		//assert(0 && "not implemented");
 		return 0;
 	}
 	return 1;
