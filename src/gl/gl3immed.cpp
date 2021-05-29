@@ -15,6 +15,9 @@
 #include "rwgl3impl.h"
 #include "rwgl3shader.h"
 
+#undef RW_GL_USE_VAOS
+// For some reason, it always crashes here with VAO on.
+
 namespace rw {
 namespace gl3 {
 
@@ -63,17 +66,17 @@ openIm2D(void)
 	im2dShader = Shader::create(vs, fs);
 	assert(im2dShader);
 
-	glGenBuffers(1, &im2DIbo);
+	glGenBuffers(1, (GLuint*) &im2DIbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, im2DIbo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, STARTINDICES*2, nil, GL_STREAM_DRAW);
 
-	glGenBuffers(1, &im2DVbo);
+	glGenBuffers(1, (GLuint*) &im2DVbo);
 	glBindBuffer(GL_ARRAY_BUFFER, im2DVbo);
 	glBufferData(GL_ARRAY_BUFFER, STARTVERTICES*sizeof(Im2DVertex), nil, GL_STREAM_DRAW);
 
 #ifdef RW_GL_USE_VAOS
-	glGenVertexArraysAPPLE(1, &im2DVao);
-	glBindVertexArrayAPPLE(im2DVao);
+	glGenVertexArraysAPPLE(1, (GLuint*) &im2DVao);
+	glBindVertexArrayAPPLE((GLuint)im2DVao);
 	setAttribPointers(im2dattribDesc, 3);
 #endif
 }
@@ -81,10 +84,10 @@ openIm2D(void)
 void
 closeIm2D(void)
 {
-	glDeleteBuffers(1, &im2DIbo);
-	glDeleteBuffers(1, &im2DVbo);
+	glDeleteBuffers(1, (GLuint *) &im2DIbo);
+	glDeleteBuffers(1, (GLuint *) &im2DVbo);
 #ifdef RW_GL_USE_VAOS
-	glDeleteVertexArrays(1, &im2DVao);
+	glDeleteVertexArraysAPPLE(1, (GLuint*) &im2DVao);
 #endif
 	im2dShader->destroy();
 	im2dShader = nil;
@@ -217,16 +220,16 @@ openIm3D(void)
 	im3dShader = Shader::create(vs, fs);
 	assert(im3dShader);
 
-	glGenBuffers(1, &im3DIbo);
+	glGenBuffers(1, (GLuint *) &im3DIbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, im3DIbo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, STARTINDICES*2, nil, GL_STREAM_DRAW);
 
-	glGenBuffers(1, &im3DVbo);
+	glGenBuffers(1, (GLuint *) &im3DVbo);
 	glBindBuffer(GL_ARRAY_BUFFER, im3DVbo);
 	glBufferData(GL_ARRAY_BUFFER, STARTVERTICES*sizeof(Im3DVertex), nil, GL_STREAM_DRAW);
 
 #ifdef RW_GL_USE_VAOS
-	glGenVertexArraysAPPLE(1, &im3DVao);
+	glGenVertexArraysAPPLE(1, (GLuint*) &im3DVao);
 	glBindVertexArrayAPPLE(im3DVao);
 	setAttribPointers(im3dattribDesc, 3);
 #endif
@@ -235,10 +238,10 @@ openIm3D(void)
 void
 closeIm3D(void)
 {
-	glDeleteBuffers(1, &im3DIbo);
-	glDeleteBuffers(1, &im3DVbo);
+	glDeleteBuffers(1, (GLuint *) &im3DIbo);
+	glDeleteBuffers(1, (GLuint *) &im3DVbo);
 #ifdef RW_GL_USE_VAOS
-	glDeleteVertexArrays(1, &im3DVao);
+	glDeleteVertexArraysAPPLE(1, (GLuint*) &im3DVao);
 #endif
 	im3dShader->destroy();
 	im3dShader = nil;

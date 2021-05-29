@@ -120,7 +120,7 @@ rasterCreateTexture(Raster *raster)
 	if(natras->autogenMipmap)
 		natras->numLevels = 1;
 
-	glGenTextures(1, &natras->texid);
+	glGenTextures(1, (GLuint *) &natras->texid);
 	uint32 prev = bindTexture(natras->texid);
 	glTexImage2D(GL_TEXTURE_2D, 0, natras->internalFormat,
 	             raster->width, raster->height,
@@ -184,7 +184,7 @@ rasterCreateCameraTexture(Raster *raster)
 
 	natras->autogenMipmap = (raster->format & (Raster::MIPMAP|Raster::AUTOMIPMAP)) == (Raster::MIPMAP|Raster::AUTOMIPMAP);
 
-	glGenTextures(1, &natras->texid);
+	glGenTextures(1, (GLuint *) &natras->texid);
 	uint32 prev = bindTexture(natras->texid);
 	glTexImage2D(GL_TEXTURE_2D, 0, natras->internalFormat,
 	             raster->width, raster->height,
@@ -197,9 +197,9 @@ rasterCreateCameraTexture(Raster *raster)
 	bindTexture(prev);
 
 
-	glGenFramebuffersEXT(1, &natras->fbo);
+	glGenFramebuffersEXT(1, (GLuint *) &natras->fbo);
 	bindFramebuffer(natras->fbo);
-	glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, natras->texid, 0);
+	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, natras->texid, 0);
 	bindFramebuffer(0);
 	natras->fboMate = nil;
 
@@ -237,18 +237,18 @@ rasterCreateZbuffer(Raster *raster)
 
 	if(gl3Caps.gles){
 		// have to use RBO on GLES!!
-		glGenRenderbuffersEXT(1, &natras->texid);
-		glBindRenderbufferEXT(GL_RENDERBUFFER, natras->texid);
-		glRenderbufferStorageEXT(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, raster->width, raster->height);
+		glGenRenderbuffersEXT(1, (GLuint *) &natras->texid);
+		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, natras->texid);
+		glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH24_STENCIL8_EXT, raster->width, raster->height);
 	}else{
 		// TODO: set/check width, height, depth, format?
-		natras->internalFormat = GL_DEPTH_STENCIL;
-		natras->format = GL_DEPTH_STENCIL;
-		natras->type = GL_UNSIGNED_INT_24_8;
+		natras->internalFormat = GL_DEPTH24_STENCIL8_EXT;
+		natras->format = GL_DEPTH_STENCIL_EXT;
+		natras->type = GL_UNSIGNED_INT_24_8_EXT;
 
 		natras->autogenMipmap = 0;
 
-		glGenTextures(1, &natras->texid);
+		glGenTextures(1, (GLuint *) &natras->texid);
 		uint32 prev = bindTexture(natras->texid);
 		glTexImage2D(GL_TEXTURE_2D, 0, natras->internalFormat,
 			     raster->width, raster->height,
@@ -317,7 +317,7 @@ allocateDXT(Raster *raster, int32 dxt, int32 numLevels, bool32 hasAlpha)
 	if(natras->autogenMipmap)
 		natras->numLevels = 1;
 
-	glGenTextures(1, &natras->texid);
+	glGenTextures(1, (GLuint *) &natras->texid);
 	uint32 prev = bindTexture(natras->texid);
 	glTexImage2D(GL_TEXTURE_2D, 0, natras->internalFormat,
 	             raster->width, raster->height,
@@ -479,8 +479,8 @@ rasterLock(Raster *raster, int32 level, int32 lockMode)
 				GLuint fbo;
 				glGenFramebuffersEXT(1, &fbo);
 				bindFramebuffer(fbo);
-				glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, natras->texid, 0);
-				GLenum e = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER);
+				glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, natras->texid, 0);
+				GLenum e = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
 assert(natras->format == GL_RGBA);
 				glReadPixels(0, 0, raster->width, raster->height, natras->format, natras->type, px);
 //e = glGetError(); printf("GL err4 %x (%x)\n", e, natras->format);
@@ -827,7 +827,7 @@ destroyNativeRaster(void *object, int32 offset, int32)
 	switch(raster->type){
 	case Raster::NORMAL:
 	case Raster::TEXTURE:
-		glDeleteTextures(1, &natras->texid);
+		glDeleteTextures(1, (GLuint *) &natras->texid);
 		break;
 
 	case Raster::CAMERATEXTURE:
@@ -837,8 +837,8 @@ destroyNativeRaster(void *object, int32 offset, int32)
 			zras->fboMate = nil;
 			natras->fboMate = nil;
 		}
-		glDeleteFramebuffersEXT(1, &natras->fbo);
-		glDeleteTextures(1, &natras->texid);
+		glDeleteFramebuffersEXT(1, (GLuint *) &natras->fbo);
+		glDeleteTextures(1, (GLuint *) &natras->texid);
 		break;
 
 	case Raster::ZBUFFER:
@@ -847,14 +847,14 @@ destroyNativeRaster(void *object, int32 offset, int32)
 			Gl3Raster *oldfb = GETGL3RASTEREXT(natras->fboMate);
 			if(oldfb->fbo){
 				bindFramebuffer(oldfb->fbo);
-				glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+				glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_STENCIL_EXT, GL_TEXTURE_2D, 0, 0);
 			}
 			oldfb->fboMate = nil;
 		}
 		if(gl3Caps.gles)
-			glDeleteRenderbuffersEXT(1, &natras->texid);
+			glDeleteRenderbuffersEXT(1, (GLuint *) &natras->texid);
 		else
-			glDeleteTextures(1, &natras->texid);
+			glDeleteTextures(1, (GLuint *) &natras->texid);
 		break;
 
 	case Raster::CAMERA:
@@ -895,6 +895,8 @@ readNativeTexture(Stream *stream)
 		return nil;
 	}
 	platform = stream->readU32();
+	//BSWAP32(platform);
+
 	if(platform != PLATFORM_GL3){
 		RWERROR((ERR_PLATFORM, platform));
 		return nil;

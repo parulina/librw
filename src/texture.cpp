@@ -462,6 +462,7 @@ Texture::streamGetSize(void)
 	return size;
 }
 
+
 Texture*
 Texture::streamReadNative(Stream *stream)
 {

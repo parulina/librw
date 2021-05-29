@@ -28,10 +28,10 @@ freeInstanceData(Geometry *geometry)
 		return;
 	InstanceDataHeader *header = (InstanceDataHeader*)geometry->instData;
 	geometry->instData = nil;
-	glDeleteBuffers(1, &header->ibo);
-	glDeleteBuffers(1, &header->vbo);
+	glDeleteBuffers(1, (GLuint *) &header->ibo);
+	glDeleteBuffers(1, (GLuint *) &header->vbo);
 #ifdef RW_GL_USE_VAOS
-	glDeleteBuffers(1, &header->vao);
+	glDeleteBuffers(1, (GLuint*) &header->vao);
 #endif
 	rwFree(header->indexBuffer);
 	rwFree(header->vertexBuffer);
@@ -89,10 +89,10 @@ instanceMesh(rw::ObjPipeline *rwpipe, Geometry *geo)
 	header->vbo = 0;
 
 #ifdef RW_GL_USE_VAOS
-	glGenVertexArraysAPPLE(1, &header->vao);
+	glGenVertexArraysAPPLE(1, (GLuint*) &header->vao);
 	glBindVertexArrayAPPLE(header->vao);
 #endif
-	glGenBuffers(1, &header->ibo);
+	glGenBuffers(1, (GLuint *) &header->ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, header->ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, header->totalNumIndex*2,
 			header->indexBuffer, GL_STATIC_DRAW);
@@ -240,7 +240,7 @@ defaultInstanceCB(Geometry *geo, InstanceDataHeader *header, bool32 reinstance)
 		//
 		header->vertexBuffer = rwNewT(uint8, header->totalNumVertex*stride, MEMDUR_EVENT | ID_GEOMETRY);
 		assert(header->vbo == 0);
-		glGenBuffers(1, &header->vbo);
+		glGenBuffers(1, (GLuint *) &header->vbo);
 	}
 
 	attribs = header->attribDesc;
@@ -286,7 +286,7 @@ defaultInstanceCB(Geometry *geo, InstanceDataHeader *header, bool32 reinstance)
 	}
 
 	// Texture coordinates
-	for(int32 n = 0; n < geo->numTexCoordSets; n++){
+	for(uint32 n = 0; n < geo->numTexCoordSets; n++){
 		if(!reinstance || geo->lockedSinceInst&(Geometry::LOCKTEXCOORDS<<n)){
 			for(a = attribs; a->index != ATTRIB_TEXCOORDS0+n; a++)
 				;

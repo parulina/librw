@@ -68,7 +68,6 @@ struct UniformObject
 };
 
 const char *shaderDecl120 =
-"#version 120\n"
 "#define GL2\n"
 "#define texture texture2D\n"
 "#define VSIN(index) attribute\n"
@@ -493,7 +492,7 @@ void
 bindFramebuffer(uint32 fbo)
 {
 	if(currentFramebuffer != fbo){
-		glBindFramebufferEXT(GL_FRAMEBUFFER, fbo);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
 		currentFramebuffer = fbo;
 	}
 }
@@ -1203,7 +1202,7 @@ setFrameBuffer(Camera *cam)
 				Gl3Raster *oldfb = PLUGINOFFSET(Gl3Raster, natzb->fboMate, nativeRasterOffset);
 				if(oldfb->fbo){
 					bindFramebuffer(oldfb->fbo);
-					glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+					glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_STENCIL_EXT, GL_TEXTURE_2D, 0, 0);
 					bindFramebuffer(natfb->fbo);
 				}
 				oldfb->fboMate = nil;
@@ -1212,15 +1211,15 @@ setFrameBuffer(Camera *cam)
 			natzb->fboMate = fbuf;
 			if(natfb->fbo){
 				if(gl3Caps.gles)
-					glFramebufferRenderbufferEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, natzb->texid);
+					glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_STENCIL_EXT, GL_RENDERBUFFER_EXT, natzb->texid);
 				else
-					glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, natzb->texid, 0);
+					glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_STENCIL_EXT, GL_TEXTURE_2D, natzb->texid, 0);
 			}
 		}
 	}else{
 		// remove z-buffer
 		if(natfb->fboMate && natfb->fbo)
-			glFramebufferTexture2DEXT(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+			glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_STENCIL_EXT, GL_TEXTURE_2D, 0, 0);
 		natfb->fboMate = nil;
 	}
 }
@@ -1516,11 +1515,16 @@ static struct {
 	int gl;
 	int major, minor;
 } profiles[] = {
-	{ SDL_GL_CONTEXT_PROFILE_CORE, 2, 0 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 2, 1 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 2, 0 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 5 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 4 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 3 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 2 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 1 },
+	{ SDL_GL_CONTEXT_PROFILE_COMPATIBILITY, 1, 0 },
 	{ SDL_GL_CONTEXT_PROFILE_CORE, 3, 3 },
 	{ SDL_GL_CONTEXT_PROFILE_CORE, 2, 1 },
-	{ SDL_GL_CONTEXT_PROFILE_ES, 3, 1 },
-	{ SDL_GL_CONTEXT_PROFILE_ES, 2, 0 },
 	{ 0, 0, 0 },
 };
 
@@ -1533,59 +1537,37 @@ startSDL2(void)
 
 	mode = &glGlobals.modes[glGlobals.currentMode];
 
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glGlobals.numSamples);
+	if(mode->flags & VIDEOMODEEXCLUSIVE) {
+		win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+			mode->mode.w, mode->mode.h, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+		if (win) SDL_SetWindowDisplayMode(win, &mode->mode);
+	} else {
+		win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+			glGlobals.winWidth, glGlobals.winHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+		if (win) SDL_SetWindowDisplayMode(win, NULL);
+	}
 
-	/*
-	int i = 0; // Start with 2.0
-	for(i; profiles[i].gl; i++){
+	if(!win) {
+		RWERROR((ERR_GENERAL, SDL_GetError()));
+		return 0;
+	}
+
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glGlobals.numSamples);
+	for(int i = 0; profiles[i].gl; i++){
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profiles[i].gl);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, profiles[i].major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, profiles[i].minor);
-
-		if(mode->flags & VIDEOMODEEXCLUSIVE) {
-			win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, mode->mode.w, mode->mode.h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-			if (win)
-				SDL_SetWindowDisplayMode(win, &mode->mode);
+		ctx = SDL_GL_CreateContext(win);
+		if(!ctx) {
+			RWERROR((ERR_GENERAL, SDL_GetError()));
 		} else {
-			win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, glGlobals.winWidth, glGlobals.winHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-			if (win)
-				SDL_SetWindowDisplayMode(win, NULL);
-		}
-		if(win){
-			gl3Caps.gles = profiles[i].gl == SDL_GL_CONTEXT_PROFILE_ES;
-			gl3Caps.glversion = profiles[i].major*10 + profiles[i].minor;
 			break;
 		}
+
 	}
-	if(win == nil){
-		RWERROR((ERR_GENERAL, SDL_GetError()));
+	if (!ctx) {
 		return 0;
 	}
-	if (!((gl3Caps.gles ? gladLoadGLES2Loader : gladLoadGLLoader) ((GLADloadproc) SDL_GL_GetProcAddress, gl3Caps.glversion)) ) {
-		RWERROR((ERR_GENERAL, "gladLoadGLLoader failed"));
-		SDL_GL_DeleteContext(ctx);
-		SDL_DestroyWindow(win);
-		return 0;
-	}
-	*/
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-	win = SDL_CreateWindow(glGlobals.winTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			glGlobals.winWidth, glGlobals.winHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-
-	if (win) {
-		SDL_SetWindowDisplayMode(win, NULL);
-	} else {
-		RWERROR((ERR_GENERAL, SDL_GetError()));
-		return 0;
-	}
-
-	ctx = SDL_GL_CreateContext(win);
-
-	gladLoadGLLoader(SDL_GL_GetProcAddress);
-
 
 	printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 
@@ -1775,24 +1757,9 @@ stopGLFW(void)
 static int
 initOpenGL(void)
 {
-/*
-	// this only works from 3.0 onward,
-	// but luckily GLAD has already taken care of extensions for us
-	int numExt;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &numExt);
-	for(int i = 0; i < numExt; i++){
-		const char *ext = (const char*)glGetStringi(GL_EXTENSIONS, i);
-		if(ext == nil)
-			continue;	// apparently that can happen...
-		if(strcmp(ext, "GL_EXT_texture_compression_s3tc") == 0)
-			gl3Caps.dxtSupported = true;
-		else if(strcmp(ext, "GL_KHR_texture_compression_astc_ldr") == 0)
-			gl3Caps.astcSupported = true;
-//		printf("%d %s\n", i, ext);
-	}
-*/
-	gl3Caps.dxtSupported = !!GLAD_GL_EXT_texture_compression_s3tc;
-	gl3Caps.astcSupported = !!GLAD_GL_KHR_texture_compression_astc_ldr;
+	// FIXME
+	//gl3Caps.dxtSupported = GLAD_GL_EXT_texture_compression_s3tc;
+	//gl3Caps.astcSupported = GLAD_GL_KHR_texture_compression_astc_ldr;
 
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gl3Caps.maxAnisotropy);
 
@@ -1983,8 +1950,8 @@ deviceSystemSDL2(DeviceReq req, void *arg, int32 n)
 
 	case DEVICEGETMAXMULTISAMPLINGLEVELS:
 		{
-			GLint maxSamples;
-			glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
+			GLint maxSamples = 0;
+			//glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
 			if(maxSamples == 0)
 				return 1;
 			return maxSamples;
